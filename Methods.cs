@@ -1,68 +1,63 @@
+using System.Data;
+using System.Numerics;
+
 namespace SectTask;
+
 using System.Text.Json;
 
-public class Methods
+public class TaskManager
 {
-    private List<Task?> _taskData = new List<Task?>();
-    private List<Group?> _groupData = new List<Group?>();
-    private List<SubTask?> _subData = new List<SubTask?>();
-    
-    public void AddTask(int id, SubTask sub, DateTime deadline, bool complete)
+    private readonly List<Task> _taskData;
+    private readonly List<Group> _groupData;
+
+    public TaskManager()
     {
-        _taskData.Add(new Task() {TaskId = id, Sub = sub, DeadLine = deadline, TaskStatus = complete} );
+        _groupData = new List<Group>();
+        _taskData = new List<Task>();
+    }
+
+    public void AddTask(int id, DateTime deadline, bool complete)
+    {
+        _taskData.Add(new Task(id, deadline, complete));
         Console.WriteLine("Task Created!");
     }
 
-    public void AddSubTask(int Taskid, SubTask sub)
+    public void AddSubTask(int taskId, SubTask subTask)
     {
-        foreach (var t in _taskData.Where(t => t!.TaskId == Taskid))
-        {
-            t!.Sub = sub;
-        }
-        
+        _taskData
+            .FirstOrDefault(task => task.TaskId == taskId)
+            ?.SubTasks
+            .Add(subTask);
         Console.WriteLine("SubTask Created!");
     }
 
-    public void ChangeSubStatus(int id)
+    public void ChangeSubtaskStatus(int taskId, int subTaskId)
     {
-        foreach (var t in _subData.Where(t => t!.SubStatus == false))
-        {
-            t!.SubStatus = true;
-        }
+        _taskData
+            .FirstOrDefault(task => task.TaskId == taskId)?
+            .SubTasks
+            .FirstOrDefault(subtask => subtask.SubTaskId == subTaskId)?
+            .ChangeStatus();
         Console.WriteLine("Status Changed!");
     }
+
     public void ShowTasks()
     {
-        foreach (var t in _taskData)
+        foreach (var task in _taskData)
         {
-            Console.WriteLine(t!.TaskId);
-            Console.WriteLine(t!.TaskStatus);
-            var json = JsonSerializer.Serialize(t?.Sub);
-            var json1 = JsonSerializer.Serialize(t?.DeadLine);
-            Console.WriteLine(json);
+            Console.WriteLine(task!.TaskId);
+            Console.WriteLine(task!.TaskStatus);
+            foreach (var task1 in task.SubTasks)
+            {
+                var json = JsonSerializer.Serialize(task1);
+                Console.WriteLine(json);
+            }
+
+            var json1 = JsonSerializer.Serialize(task.DeadLine);
             Console.WriteLine(json1);
         }
     }
-    
-    public void ShowTasks(int id)
-    {
-        foreach (var t in _taskData)
-        {
-            if (t!.TaskId == id){
-                Console.WriteLine(t!.TaskId);
-                Console.WriteLine(t!.TaskStatus);
-                var json = JsonSerializer.Serialize(t?.Sub);
-                var json1 = JsonSerializer.Serialize(t?.DeadLine);
-                Console.WriteLine(json);
-                Console.WriteLine(json1);
-            }
-            else
-            {
-                Console.WriteLine("Wrong Id");
-            }
-        }
-    }
-    
+
     public void DeleteTask(int id)
     {
         for (var i = 0; i < _taskData.Count; ++i)
@@ -73,16 +68,17 @@ public class Methods
             }
         }
     }
-    
-    public void ChangeStatus(int id)
+
+    public void ChangeTaskStatus(int id, bool status)
     {
-        foreach (var t in _taskData.Where(t => t!.TaskStatus == false))
+        foreach (var t in _taskData)
         {
-            t!.TaskStatus = true;
+            t!.TaskStatus = status;
         }
+
         Console.WriteLine("Status Changed!");
     }
-    
+
     public void toFile(string? ph)
     {
         var str = new StreamWriter(ph!);
@@ -90,52 +86,61 @@ public class Methods
         {
             str.WriteLine(t!.TaskId);
             str.WriteLine(t!.TaskStatus);
-            var json = JsonSerializer.Serialize(t?.Sub);
+            var json = JsonSerializer.Serialize(t?.SubTasks);
             var json1 = JsonSerializer.Serialize(t?.DeadLine);
             str.WriteLine(json);
             str.WriteLine(json1);
         }
+
         str.Close();
     }
 
     public void fromFile(string? ph)
     {
-        if (File.Exists(ph))
+        if (!File.Exists(ph))
         {
-            using StreamReader reader = new StreamReader(ph);
-            _taskData.Clear();
-            for (int i = 0; i < System.IO.File.ReadAllLines(ph).Length; ++i)
+            throw new Exception("File not found");
+        }
+
+        using var reader = new StreamReader(ph);
+        _taskData.Clear();
+        for (var i = 0; i < System.IO.File.ReadAllLines(ph).Length; ++i)
+        {
+            var json = reader.ReadLine();
+            if (json != null) _taskData.Add(JsonSerializer.Deserialize<Task>(json)!);
+        }
+    }
+
+    public void PrintTodaysDeadline()
+    {
+        foreach (var task in _taskData)
+        {
+            if (task.DeadLine.Day == DateTime.Now.Day)
             {
-                string? json = reader.ReadLine();
-                if (json != null) _taskData.Add(JsonSerializer.Deserialize<Task>(json));
+                var json = JsonSerializer.Serialize(task);
+                Console.WriteLine(json);
             }
         }
-        else
-        {
-            Console.WriteLine("File not found");
-        }
-    }
-    
-    public void DayCheck()
-    {
-        foreach (var json in from t in _taskData where t!.DeadLine.Day == DateTime.Now.Day select JsonSerializer.Serialize(t))
-        {
-            Console.WriteLine(json);
-        }
     }
 
-    public void CreateGroup(int id)
+    public void CreateGroup(int Id)
     {
-        _groupData.Add(new Group(){GroupId = id,Tasks = null});
+        _groupData.Add(new Group(Id));
     }
 
-    public void AddToGroup(int Taskid, int Groupid)
+    public void AddToGroup(int taskId, int groupId)
     {
-        foreach (var t in _taskData.Where(t => t!.TaskId == Taskid))
+        foreach (var t in _taskData)
         {
-            foreach (var t1 in _groupData.Where(t1 => t1!.GroupId == Groupid))
+            if (t.TaskId == taskId)
             {
-                t1!.Tasks = t;
+                foreach (var t1 in _groupData)
+                {
+                    if (t1.GroupId == groupId)
+                    {
+                        t1.Tasks.Add(t);
+                    }
+                }
             }
         }
     }
@@ -146,52 +151,30 @@ public class Methods
         {
             var json = JsonSerializer.Serialize(t!.GroupId);
             var json1 = JsonSerializer.Serialize(t!.Tasks);
-            if (json == "null")
-            {
-                Console.Write("");
-            }
-            else
-            {
-                Console.WriteLine(json);    
-            }
-            if (json1 == "null")
-            {
-                Console.Write("");
-            }
-            else
-            {
-                Console.WriteLine(json1);    
-            }
+            Console.WriteLine(json);
+            Console.WriteLine(json1);
         }
     }
 
-    public void DeleteGroup(int id)
+    public void DeleteGroup(int Id)
     {
-        foreach (var t in _groupData)
-        {
-            if (t!.GroupId == id)
-            {
-                t.Tasks = null;
-                t.GroupId = null;
-            }
-        }
+        var group = _groupData.Single(group => group.GroupId == Id);
+        _groupData.Remove(group);
     }
 
-    public void DeleteFromGroup(int Groupid, int Taskid)
+    public void DeleteTaskFromGroup(int groupId, int taskId)
     {
-        for (int i = 0; i < _groupData.Count; ++i)
+        foreach (var group in _groupData.Where(t => t.GroupId == groupId))
         {
-            if (_groupData[i]!.GroupId == Groupid)
+            for (var j = 0; j < _taskData.Count; ++j)
             {
-                for (int j = 0; j < _taskData.Count; ++j)
+                if (_taskData[j].TaskId == taskId)
                 {
-                    if (_taskData[j]!.TaskId == Taskid)
-                    {
-                        _groupData[i]!.Tasks = null;
-                    }
+                    group.Tasks.Remove(group.Tasks[j]);
                 }
             }
-        } 
+        }
     }
+    
     
 }
