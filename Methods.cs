@@ -24,11 +24,20 @@ public class TaskManager
 
     public void AddSubTask(int taskId, SubTask subTask)
     {
-        _taskData
+        
+        var adder = _taskData
             .FirstOrDefault(task => task.TaskId == taskId)
-            ?.SubTasks
-            .Add(subTask);
-        Console.WriteLine("SubTask Created!");
+            ?.SubTasks;
+        if (adder != null)
+        {
+            adder.Add(subTask);
+            Console.WriteLine("SubTask Created!");
+        }
+        else
+        {
+            Console.WriteLine("Try another Id");
+        }
+        
     }
 
     public void ChangeSubtaskStatus(int taskId, int subTaskId)

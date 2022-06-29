@@ -7,7 +7,7 @@ static class Program
         CommandParser input = new CommandParser();
         input.Commands(args);
         
-       /* TaskManager td = new TaskManager();
+        /* TaskManager td = new TaskManager();
         SubTask subTask = new SubTask(false, 1,"sport", "beerpong") ;
         SubTask subTask1 = new SubTask(false, 2,"sprt", "beerpong") ;
         SubTask subTask2 = new SubTask(false, 3,"port", "beerpong") ;
@@ -25,7 +25,7 @@ static class Program
         td.ShowTasks();
         td.AddSubTask(1,subTask);
         td.AddSubTask(1,subTask1);
-        td.AddSubTask(1,subTask2);
+        td.AddSubTask(5,subTask2);
         td.CreateGroup(1);
         td.AddToGroup(1,1);
         td.AddToGroup(2,1);
@@ -36,6 +36,7 @@ static class Program
         td.DeleteTaskFromGroup(1,2);
         td.ShowGroup();
         td.DeleteGroup(1);
-        td.ShowGroup();*/
+        td.ShowGroup();
+    */
     }
 }
